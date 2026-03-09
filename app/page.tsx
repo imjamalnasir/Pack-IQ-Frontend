@@ -6,7 +6,7 @@ return(
     
    
     
-    <ComponentExample />
+    
 
     </div>
     
