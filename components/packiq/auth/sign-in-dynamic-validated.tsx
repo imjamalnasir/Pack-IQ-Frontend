@@ -81,7 +81,7 @@ export function SignInDynamicValidated({
     setLoading(true)
 
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("http://3.235.8.53:8080/auth/password-check", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
