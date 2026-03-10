@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
-export function SignInDynamicValidated({
+export function SignInDynamicValidated({  
   className,
   ...props
 }: React.ComponentProps<"div">) {
@@ -96,7 +96,11 @@ export function SignInDynamicValidated({
         throw new Error(data.message)
       }
 
-      router.push("/auth/otp-method")
+      const temptoken = data.token
+      console.log(temptoken)
+
+   
+     router.push(`/auth/otp-method?temptoken=${temptoken}`);
 
     } catch (err: any) {
       setServerError(err.message || "Invalid email or password")

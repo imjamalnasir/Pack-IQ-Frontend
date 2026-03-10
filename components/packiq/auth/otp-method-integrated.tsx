@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams  } from 'next/navigation'
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,10 +14,15 @@ import {
   FieldTitle,
 } from "@/components/ui/field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ContentListInstance } from 'twilio/lib/rest/content/v2/content'
 
-export function OtpMethodIntegrated() {
+export function OtpMethodIntegrated(props: any) {
   const router = useRouter()
 
+  const temptoken = props.temptoken
+
+ console.log(props.temptoken)
+  
   const [otpmethod, setOtpmethod] = useState("SMS")
   const [loading, setLoading] = useState(false)
 
@@ -25,12 +30,13 @@ export function OtpMethodIntegrated() {
     try {
       setLoading(true)
 
-      const res = await fetch("/api/send-otp", {
+      const res = await fetch("http://3.235.8.53:8080/auth/send-otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ otpmethod }),
+        body: JSON.stringify({ otpmethod, temptoken }),
+        
       })
 
       const data = await res.json()
@@ -45,7 +51,9 @@ export function OtpMethodIntegrated() {
       // Navigate to enter otp page
       // ⚠️ Do NOT pass OTP in production
      //router.push(`/auth/enter-otp?method=${method}&otp=${data.otp}`)
-      router.push(`/auth/enter-otp?method=${otpmethod}`)
+     
+    router.push(`/auth/enter-otp?method=${otpmethod}&temptoken=${temptoken}`);
+  
 
     } catch (error) {
       console.error("Error sending OTP:", error)

@@ -5,11 +5,19 @@ import { useSearchParams } from 'next/navigation';
 
 
 
-
+   
 
 export default function EnterOtpPage() {
 
-    const searchParams = useSearchParams();
+  const searchParams  = useSearchParams();
+    
+      const method = searchParams.get('method');
+      const temptoken = searchParams.get('temptoken');
+
+    console.log(method, temptoken)
+    
+
+
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] flex-col items-center justify-center p-6 md:p-10">
