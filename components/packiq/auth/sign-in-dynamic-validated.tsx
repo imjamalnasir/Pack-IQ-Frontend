@@ -97,10 +97,11 @@ export function SignInDynamicValidated({
       }
 
       const temptoken = data.token
-      console.log(temptoken)
+   
 
    
-     router.push(`/auth/otp-method?temptoken=${temptoken}`);
+    router.push(`/auth/otp-method?temptoken=${temptoken}&email=${email}`);
+    //router.push(`/auth/enter-otp?temptoken=${temptoken}&email=${email}`);
 
     } catch (err: any) {
       setServerError(err.message || "Invalid email or password")

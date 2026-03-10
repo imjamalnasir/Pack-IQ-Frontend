@@ -14,12 +14,18 @@ import {
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp"
 
 export function EnterOtpIntegrated(props: any) {
+
+   const channel = props.channel
+   const tempToken = props.tempToken
+
   const router = useRouter()
 
   const [otp, setOtp] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+
+console.log("temp token : " + tempToken)
 
   // 🔹 Verify OTP API Call
   const handleVerifyOtp = async (e: any) => {
@@ -34,35 +40,72 @@ export function EnterOtpIntegrated(props: any) {
     setError("")
     setMessage("")
 
-    try {
-      const res = await fetch("/api/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          otp: otp,
-          userId: props.userId, // optional
-        }),
-      })
+try {
+  const res = await fetch("http://3.235.8.53:8080/auth/verify-otp", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      otp: otp,
+      channel: channel,
+      tempToken: tempToken,
+    }),
+  });
 
-      const data = await res.json()
+  const data = await res.json();
 
-      if (res.ok && data.success) {
-        setMessage(data.message || "OTP verified successfully ✅")
-        
-        // Redirect after success
+  // ✅ CONDITION 4 - SUCCESS
+  if (res.ok && data.status === true) {
+    setMessage("OTP verified successfully ✅");
+
+    // You can store tokens if needed
+    localStorage.setItem("token", data.Token);
+    localStorage.setItem("refreshToken", data.refereshToken);
+    console.log(data.Token)
+    console.log(data.refereshToken)
+
+
+    //setTimeout(() => {
+      //router.push("/auth/select-client");
+    //}, 1000);
+  } 
+  
+  // ❌ ERROR CONDITIONS
+  else {
+    switch (data.message) {
+
+      // CONDITION 1 - TOKEN EXPIRED
+      case "Token expired":
+        setError("Session has expired. Please login again.");
         setTimeout(() => {
-          router.push("/auth/select-client")
-        }, 1000)
-      } else {
-        setError(data.message || "Invalid OTP")
-      }
-    } catch (err: any) {
-      setError("Something went wrong. Please try again.")
-    } finally {
-      setLoading(false)
+          router.push("/auth/sign-in");
+        }, 1500);
+        break;
+
+      // CONDITION 2 - INVALID TOKEN
+      case "Invalied Token":
+        setError("Invalid session. Please login again.");
+        setTimeout(() => {
+          router.push("/auth/sign-in");
+        }, 1500);
+        break;
+
+      // CONDITION 3 - OTP EXPIRED
+      case "OTP expired":
+        setError("OTP has expired. Please request a new OTP.");
+        break;
+
+      // DEFAULT (WRONG OTP)
+      default:
+        setError("Invalid OTP, please enter correct OTP again.");
     }
+  }
+} catch (err: any) {
+  setError("Something went wrong. Please try again.");
+} finally {
+  setLoading(false);
+}
   }
 
   // 🔹 Resend OTP API Call

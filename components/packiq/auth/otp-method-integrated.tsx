@@ -19,26 +19,30 @@ import { ContentListInstance } from 'twilio/lib/rest/content/v2/content'
 export function OtpMethodIntegrated(props: any) {
   const router = useRouter()
 
-  const temptoken = props.temptoken
+  const tempToken = props.temptoken
+   const email = props.email
 
- console.log(props.temptoken)
   
   const [otpmethod, setOtpmethod] = useState("SMS")
   const [loading, setLoading] = useState(false)
+  const channel = otpmethod;
+
 
   const handleSend = async () => {
     try {
-      setLoading(true)
 
+      setLoading(true)
       const res = await fetch("http://3.235.8.53:8080/auth/send-otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ otpmethod, temptoken }),
+        body: JSON.stringify({ tempToken, channel }),
         
       })
 
+
+      
       const data = await res.json()
 
       if (!res.ok) {
@@ -52,7 +56,7 @@ export function OtpMethodIntegrated(props: any) {
       // ⚠️ Do NOT pass OTP in production
      //router.push(`/auth/enter-otp?method=${method}&otp=${data.otp}`)
      
-    router.push(`/auth/enter-otp?method=${otpmethod}&temptoken=${temptoken}`);
+    router.push(`/auth/enter-otp?channel=${channel}&tempToken=${tempToken}&email=${email}`);
   
 
     } catch (error) {
