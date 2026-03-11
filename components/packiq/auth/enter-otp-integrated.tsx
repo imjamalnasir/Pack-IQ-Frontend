@@ -92,8 +92,10 @@ try {
   if (res.ok && data.status === true) {
     setMessage("OTP verified successfully ✅");
 
-    localStorage.setItem("token", data.Token);
-    localStorage.setItem("refreshToken", data.refereshToken);
+    const accessToken = data.token ?? data.Token
+    const refresh = data.refreshToken ?? data.refereshToken
+    if (accessToken) localStorage.setItem("token", accessToken)
+    if (refresh) localStorage.setItem("refreshToken", refresh)
 
     setTimeout(() => {
       router.push("/auth/select-client");
