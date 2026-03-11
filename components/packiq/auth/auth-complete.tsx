@@ -42,7 +42,7 @@ export function AuthComplete() {
     <FieldGroup className="max-wsm">
 
                     <Field>
-                <Button  type="button" onClick={() => router.push('#')}  >Go to dashboard</Button>      
+                <Button  type="button" onClick={() => router.push('/data-management/upload-center')}  >Go to dashboard</Button>      
 
                   
               </Field>

@@ -62,9 +62,9 @@ export function EnterOtpGetToken(props: EnterOtpIntegratedProps) {
         setMessage(data.message || "OTP verified successfully ✅")
         console.log("this is jwt token"+ data.token)
 
-        // Redirect after success
+        // Redirect to client selection after success
         setTimeout(() => {
-          router.push("#")
+          router.push("/auth/select-client")
         }, 800)
       } else {
         setError(data.message || "Invalid OTP")

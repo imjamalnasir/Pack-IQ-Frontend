@@ -2,19 +2,31 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment variables
+
+Copy or edit `.env.local` in the project root. The file is already created with defaults for the PackIQ backend:
+
+- **`NEXT_PUBLIC_API_URL`** – Java API base URL (default: `http://3.235.8.53:8080`). Required for auth and client selection.
+- Uncomment and set any optional variables (Supabase, Twilio, DB) if you use those features.
+
+### 2. Start the server
+
+**Development** (hot reload; file changes are watched and the build refreshes automatically):
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://localhost:3000](http://localhost:3000) in your browser. If changes are not detected (e.g. on WSL or a network drive), run `npm run dev:webpack` instead to use webpack with polling.
+
+**Production build** (run a built app locally):
+
+```bash
+npm run build
+npm run start
+```
+
+Other package managers: use `yarn dev` / `pnpm dev` / `bun dev` instead of `npm run dev` if you prefer.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

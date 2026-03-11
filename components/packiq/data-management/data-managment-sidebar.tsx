@@ -84,7 +84,7 @@ const data = {
         },
         {
           title: "Extraction Review",
-          url: "#",
+          url: "/data-management/extraction-review",
         },
                 {
           title: "Data Completeness",

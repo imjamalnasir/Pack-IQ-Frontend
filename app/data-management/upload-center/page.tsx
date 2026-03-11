@@ -1,114 +1,122 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import { AppSidebarPackIQ } from "@/components/app-sidebar-packiq"
-import { PackIQDataSpecDashMatrCards } from "@/components/PackIQ-Data-Specialist-Dashboard-MetricCards"
-import { PackiqRecentUpload } from "@/components/PackIQ-Recent-Uploads"
-import { PackiqTablev1 } from "@/components/packiq-table-v1"
+"use client"
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+import { useCallback, useState } from "react"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-//import { Button } from "@base-ui/react"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-
-
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldLabel,
-  FieldTitle,
-} from "@/components/ui/field"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { PackIQRadioGroupChoiceCard } from "@/components/PackIQRadioGroupChoiceCard"
+import { PackIQRadioGroupChoiceCard, type DocType } from "@/components/PackIQRadioGroupChoiceCard"
 import { PackiqFileUploadZone } from "@/components/PackiqFileUploadZone"
 import { PackIQUploadCenterRecentUploads } from "@/components/PackIQ-UploadCenter-RecentUploads"
 import { PackIQFileUploadProgress } from "@/components/PackIQFileUploadProgress"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://3.235.8.53:8080"
 
-
+const UPLOAD_SUCCESS_MESSAGE =
+  "Upload is done and processing is in progress. You will be notified by email once processing is done."
 
 export default function UploadCenter() {
+  const [docType, setDocType] = useState<DocType>("bom")
+  const [uploadFileName, setUploadFileName] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadSuccessMessage, setUploadSuccessMessage] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const closeProgress = useCallback(() => {
+    setUploadFileName(null)
+    setUploadProgress(0)
+    setUploadSuccessMessage(null)
+    setUploadError(null)
+  }, [])
+
+  const onFileAccepted = useCallback(
+    async (file: File) => {
+      setUploadFileName(file.name)
+      setUploadProgress(0)
+      setUploadSuccessMessage(null)
+      setUploadError(null)
+      setUploading(true)
+
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("doc_type", docType)
+
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null
+      const headers: HeadersInit = {}
+      if (token) headers["Authorization"] = `Bearer ${token}`
+
+      try {
+        setUploadProgress(30)
+        const res = await fetch(`${API_URL}/files/ocr`, {
+          method: "POST",
+          headers,
+          body: formData,
+        })
+        const data = res.ok ? await res.json().catch(() => ({})) : await res.json().catch(() => ({}))
+        if (res.status === 202) {
+          setUploadProgress(100)
+          setUploadSuccessMessage(UPLOAD_SUCCESS_MESSAGE)
+        } else {
+          setUploadError(data?.error ?? data?.message ?? `Upload failed (${res.status})`)
+        }
+      } catch (err) {
+        setUploadError(err instanceof Error ? err.message : "Upload failed")
+      } finally {
+        setUploading(false)
+      }
+    },
+    [docType]
+  )
+
   return (
     <>
-  
-   
-      
-
-
-
-           <CardHeader  className="py-4 flex flex-row items-start justify-between gap-4">
-            <div className="space-y-1.5">
+      <CardHeader className="py-4 flex flex-row items-start justify-between gap-4">
+        <div className="space-y-1.5">
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-          Upload Center
+            Upload Center
           </CardTitle>
           <CardDescription>
             Upload and process packaging specifications, BOM data, and sales information
           </CardDescription>
-          </div>
-          <CardAction>
-            
-          </CardAction>
-        </CardHeader>
-<Card className="m-6">
- 
-          
-          
+        </div>
+        <CardAction />
+      </CardHeader>
 
-<CardContent >
-<PackIQRadioGroupChoiceCard />
-</CardContent>
-<PackiqFileUploadZone />
+      <Card className="m-6">
+        <CardContent>
+          <PackIQRadioGroupChoiceCard value={docType} onValueChange={setDocType} />
+        </CardContent>
+        <PackiqFileUploadZone onFileAccepted={onFileAccepted} disabled={uploading} />
+      </Card>
 
-</Card>
-
-<Card className="m-6">
-
-           <CardHeader  className=" flex flex-row items-start justify-between gap-4">
+      {uploadFileName != null && (
+        <Card className="m-6">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div className="space-y-1.5">
-          <CardTitle className="">
-          Upload Progress
-          </CardTitle>
-          <CardDescription>
-            Upload and process packaging specifications, BOM data, and sales information
-          </CardDescription>
-          </div>
-          <CardAction>
-            
-          </CardAction>
-        </CardHeader>
+              <CardTitle>Upload Progress</CardTitle>
+              <CardDescription>
+                Upload and process packaging specifications, BOM data, and sales information
+              </CardDescription>
+            </div>
+            <CardAction />
+          </CardHeader>
+          <CardContent>
+            {uploadError && (
+              <p className="text-sm text-destructive mb-2">{uploadError}</p>
+            )}
+            <PackIQFileUploadProgress
+              fileName={uploadFileName}
+              progress={uploadProgress}
+              successMessage={uploadSuccessMessage}
+              hasError={!!uploadError}
+              onClose={closeProgress}
+            />
+          </CardContent>
+        </Card>
+      )}
 
-<CardContent >
-<PackIQFileUploadProgress/>
-
-
-</CardContent>
-</Card>
-
-<CardContent >
-          
-          <PackIQUploadCenterRecentUploads/> 
-</CardContent>
-
-
-           
-          
-        
-        
-
-   
+      <CardContent>
+        <PackIQUploadCenterRecentUploads />
+      </CardContent>
     </>
   )
 }

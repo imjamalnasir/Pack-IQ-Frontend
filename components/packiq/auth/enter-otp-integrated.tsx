@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,19 +13,52 @@ import {
 } from "@/components/ui/input-otp"
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp"
 
+const RESEND_COOLDOWN_SECONDS = 60
+const MAX_RESEND_COUNT = 2
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://3.235.8.53:8080"
+
+function formatCountdown(seconds: number) {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, "0")}`
+}
+
 export function EnterOtpIntegrated(props: any) {
-
-   const channel = props.channel
-   const tempToken = props.tempToken
-
+  const channel = props.channel
+  const tempToken = props.tempToken
   const router = useRouter()
 
   const [otp, setOtp] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+  const [countdownSeconds, setCountdownSeconds] = useState(RESEND_COOLDOWN_SECONDS)
+  const [resendCount, setResendCount] = useState(0)
+  const [resendLoading, setResendLoading] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-console.log("temp token : " + tempToken)
+  // 1-minute countdown timer (runs on mount and restarts when countdown is reset to 60)
+  useEffect(() => {
+    if (countdownSeconds <= 0) return
+    timerRef.current = setInterval(() => {
+      setCountdownSeconds((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+          }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [countdownSeconds])
 
   // 🔹 Verify OTP API Call
   const handleVerifyOtp = async (e: any) => {
@@ -41,7 +74,7 @@ console.log("temp token : " + tempToken)
     setMessage("")
 
 try {
-  const res = await fetch("http://3.235.8.53:8080/auth/verify-otp", {
+  const res = await fetch(`${API_URL}/auth/verify-otp`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -59,16 +92,12 @@ try {
   if (res.ok && data.status === true) {
     setMessage("OTP verified successfully ✅");
 
-    // You can store tokens if needed
     localStorage.setItem("token", data.Token);
     localStorage.setItem("refreshToken", data.refereshToken);
-    console.log(data.Token)
-    console.log(data.refereshToken)
 
-
-    //setTimeout(() => {
-      //router.push("/auth/select-client");
-    //}, 1000);
+    setTimeout(() => {
+      router.push("/auth/select-client");
+    }, 800);
   } 
   
   // ❌ ERROR CONDITIONS
@@ -108,30 +137,35 @@ try {
 }
   }
 
-  // 🔹 Resend OTP API Call
+  // 🔹 Resend OTP – backend API, 1-min cooldown, max 2 resends
   const handleResendOtp = async () => {
+    if (resendCount >= MAX_RESEND_COUNT || countdownSeconds > 0) return
+    setResendLoading(true)
+    setError("")
+    setMessage("")
     try {
-      const res = await fetch("/api/resend-otp", {
+      const res = await fetch(`${API_URL}/auth/resend-otp`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: props.userId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tempToken, channel: channel ?? "EMAIL" }),
       })
-
-      const data = await res.json()
-
-      if (res.ok && data.success) {
+      const data = await res.json().catch(() => ({}))
+      const success = res.ok && (data.valid === true || data.success === true || data.status === true)
+      if (success) {
         setMessage("OTP resent successfully ✅")
+        setResendCount((c) => c + 1)
+        setCountdownSeconds(RESEND_COOLDOWN_SECONDS)
       } else {
-        setError(data.message || "Failed to resend OTP")
+        setError(data.message ?? "Failed to resend OTP")
       }
     } catch (err) {
       setError("Error resending OTP")
+    } finally {
+      setResendLoading(false)
     }
   }
+
+  const resendDisabled = countdownSeconds > 0 || resendCount >= MAX_RESEND_COUNT || resendLoading
 
   return (
     <Card>
@@ -185,13 +219,25 @@ try {
 
               <p className="text-muted-foreground text-center mt-3">
                 Didn’t receive the code?{" "}
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  className="underline hover:text-primary"
-                >
-                  Resend
-                </button>
+                {resendCount >= MAX_RESEND_COUNT ? (
+                  <span className="text-muted-foreground">Max resends reached (2)</span>
+                ) : (
+                  <>
+                    {countdownSeconds > 0 && (
+                      <span className="text-muted-foreground mr-1">
+                        Resend in {formatCountdown(countdownSeconds)}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resendDisabled}
+                      className="underline hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      {resendLoading ? "Sending…" : "Resend"}
+                    </button>
+                  </>
+                )}
               </p>
             </Field>
           </FieldGroup>

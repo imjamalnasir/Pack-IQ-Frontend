@@ -2,23 +2,32 @@
 
 import { useDropzone } from "react-dropzone"
 import { cn } from "@/lib/utils"
-//import { Button } from "@base-ui/react"
 import { Button } from "@/components/ui/button"
-import { Card } from "./ui/card"
-import {
-  FileUp,
-} from "lucide-react"
+import { FileUp } from "lucide-react"
 
-export function PackiqFileUploadZone() {
+interface PackiqFileUploadZoneProps {
+  /** Called when the user selects or drops a file. */
+  onFileAccepted?: (file: File) => void
+  /** Disable dropzone while an upload is in progress. */
+  disabled?: boolean
+}
+
+export function PackiqFileUploadZone({ onFileAccepted, disabled }: PackiqFileUploadZoneProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     multiple: false,
+    disabled,
+    onDropAccepted: (acceptedFiles) => {
+      const file = acceptedFiles[0]
+      if (file) onFileAccepted?.(file)
+    },
   })
 
   return (
     <div
       {...getRootProps()}
       className={cn(
-        "flex  mx-12 mb-8 py-12 cursor-pointer items-center justify-center rounded-lg border border-dashed text-sm transition",
+        "flex mx-12 mb-8 py-12 cursor-pointer items-center justify-center rounded-lg border border-dashed text-sm transition",
+        disabled && "pointer-events-none opacity-60",
         isDragActive
           ? "border-primary bg-primary/10"
           : "border-muted-foreground/25"
