@@ -242,7 +242,7 @@ export default function ExtractionReviewPage() {
 
       {/* Document type selection cards */}
       
-      <div className="py-8 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-stretch">
+      <div className="py-0 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-stretch">
         
         <Card
           className={cn(
