@@ -221,6 +221,7 @@ export default function ExtractionReviewPage() {
 
   return (
     <>
+    
       <CardHeader className="py-4 flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -240,7 +241,9 @@ export default function ExtractionReviewPage() {
       </CardHeader>
 
       {/* Document type selection cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-stretch">
+      
+      <div className="py-8 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-stretch">
+        
         <Card
           className={cn(
             "transition-colors cursor-pointer flex flex-col h-full",
@@ -248,16 +251,20 @@ export default function ExtractionReviewPage() {
           )}
           onClick={() => setDocType("bom")}
         >
-          <CardContent className="pt-6 flex flex-col flex-1">
+          <CardContent className="pt-0 flex flex-col flex-1">
             <Field className="flex flex-col flex-1">
-              <FieldContent className="gap-2 min-h-[5rem]">
-                <FileSpreadsheet className="size-8 shrink-0 text-muted-foreground" />
-                <FieldTitle>BOM Only</FieldTitle>
-                <FieldDescription className="line-clamp-2">
-                  Bill of Materials data including component weights and materials
-                </FieldDescription>
-              </FieldContent>
-              <div className="mt-4 shrink-0" onClick={(e) => e.stopPropagation()}>
+
+            <FieldContent className="gap-2">
+              <FileSpreadsheet />
+              <FieldTitle>BOM Only</FieldTitle>
+              <FieldDescription>
+                Bill of Materials data including component weights and materials
+              </FieldDescription>
+            </FieldContent>
+
+             
+
+              <div className="mt-0 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Select value={selectedBom || undefined} onValueChange={setSelectedBom} disabled={listsLoading}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select" />
@@ -286,10 +293,12 @@ export default function ExtractionReviewPage() {
           )}
           onClick={() => setDocType("spec")}
         >
-          <CardContent className="pt-6 flex flex-col flex-1">
+          <CardContent className="pt-0 flex flex-col flex-1">
             <Field className="flex flex-col flex-1">
+
+              
               <FieldContent className="gap-2 min-h-[5rem]">
-                <FileBox className="size-8 shrink-0 text-muted-foreground" />
+                <FileBox  />
                 <FieldTitle>Spec Only</FieldTitle>
                 <FieldDescription className="line-clamp-2">
                   Essential technical specification details.
@@ -320,10 +329,10 @@ export default function ExtractionReviewPage() {
           )}
           onClick={() => setDocType("sales")}
         >
-          <CardContent className="pt-6 flex flex-col flex-1">
+          <CardContent className="pt-0 flex flex-col flex-1">
             <Field className="flex flex-col flex-1">
               <FieldContent className="gap-2 min-h-[5rem]">
-                <FileChartColumnIncreasing className="size-8 shrink-0 text-muted-foreground" />
+                <FileChartColumnIncreasing  />
                 <FieldTitle>Sales</FieldTitle>
                 <FieldDescription className="line-clamp-2">
                   Extract sales data for EPR compliance reporting
@@ -349,7 +358,9 @@ export default function ExtractionReviewPage() {
             </Field>
           </CardContent>
         </Card>
+       
       </div>
+      
 
       {/* BOM Details card - show when BOM selected */}
       {docType === "bom" && selectedBom && (
