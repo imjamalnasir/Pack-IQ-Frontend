@@ -123,10 +123,10 @@ export function SignInDynamicValidated({
           <form className="p-6 md:p-8 space-y-6" onSubmit={handleSubmit}>
 
             <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
+              <div className="flex flex-col items-center gap-2 text-center mt-4">
                 <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-muted-foreground text-balance">
-                  Login to your account
+                <p className="text-balance  font-medium">
+                  Login to your Pack-IQ account
                 </p>
               </div>
 
@@ -161,9 +161,9 @@ export function SignInDynamicValidated({
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <a
                     href="#"
-                    className="ml-auto text-sm underline-offset-2 hover:underline"
+                    className="ml-auto underline-offset-2"
                   >
-                    Forgot password?
+                    Forgot your password?
                   </a>
                 </div>
                 <Input

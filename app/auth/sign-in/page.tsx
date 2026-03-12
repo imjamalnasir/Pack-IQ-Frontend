@@ -9,7 +9,7 @@ export default function SignInPage(){
 
         <>
 
-            <div className=" flex min-h-[calc(100vh-64px)]  flex-col items-center justify-center p-6 md:p-10">
+            <div className=" flex min-h-[calc(100vh-200px)]  flex-col items-center justify-center p-0 md:p-0">
       <div className="w-full max-w-sm md:max-w-4xl">
 
        

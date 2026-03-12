@@ -6,18 +6,13 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
+    <>
     <section className="dashboard-wrapper">
-        <div className="loginBg">
-          <Image
-          src="/piq-logo-Icon-h.png"
-          alt="Company Logo"
-          width={206}
-          height={64}
-          priority
-        />
+
       
       {children}
-      </div>
+
     </section>
+    </>
   );
 }

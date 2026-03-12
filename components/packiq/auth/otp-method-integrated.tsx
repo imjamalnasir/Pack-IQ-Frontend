@@ -69,18 +69,23 @@ export function OtpMethodIntegrated(props: any) {
 
   return (
     <Card>
-      <div className="flex flex-col items-center gap-2 text-center p-6">
+
+      
+      
+
+
+      <CardContent className='flex flex-col py-4 gap-6 center px-6'>
+        <div className="flex flex-col items-center gap-2 text-center px-2 py-4">
         <h1 className="text-2xl font-bold">OTP Verification Method</h1>
-        <p className="text-muted-foreground mx-4">
+        <p className="font-medium px-6">
           Choose how you’d like to receive your one-time verification code.
         </p>
       </div>
-
-      <CardContent>
         <form onSubmit={(e) => e.preventDefault()}>
-          <FieldGroup className="max-w-sm space-y-6">
+          <FieldGroup className="space-y-3">
             
             <RadioGroup
+            className='gap-6'
               value={otpmethod}
               onValueChange={(value) => setOtpmethod(value)}
             >
@@ -125,6 +130,7 @@ export function OtpMethodIntegrated(props: any) {
           </FieldGroup>
         </form>
       </CardContent>
+    
     </Card>
   )
 }

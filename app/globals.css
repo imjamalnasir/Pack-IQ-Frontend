@@ -15,6 +15,15 @@
   min-height: 100vh;
 }
 
+.OTPMethodBg{
+
+  background-image: url("/select-otp-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
 
 @theme inline {
   --color-background: var(--background);
@@ -71,7 +80,15 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.003 264.542);
-  --muted-foreground: oklch(0.551 0.027 264.364);
+/* ... Pack-IQ Theme Color ... */
+--muted-foreground: oklch(0% 0 0);
+
+ /*
+ Defult Color
+ --muted-foreground: oklch(0.551 0.027 264.364);
+ */
+  
+
   --accent: oklch(0.967 0.003 264.542);
   --accent-foreground: oklch(0.21 0.034 264.665);
   --destructive: oklch(0.577 0.245 27.325);
