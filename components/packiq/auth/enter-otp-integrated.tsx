@@ -171,17 +171,17 @@ try {
 
   return (
     <Card>
-      <div className="flex flex-col items-center gap-2 text-center">
+      <div className="flex flex-col items-center gap-2 text-center pt-6">
         <h1 className="text-2xl font-bold">Enter verification code</h1>
         <p className="text-muted-foreground text-balance">
-          We sent a 6-digit code via {props.otpmethod}
+          We sent a 6-digit code to {props.channel}
         </p>
       </div>
 
-      <CardContent>
+      <CardContent className="pb-4">
         <form onSubmit={handleVerifyOtp}>
           <FieldGroup className="max-wsm items-center">
-            <div className="py-6">
+            <div className="py-6 gap-4 flex flex-col">
               <InputOTP
                 maxLength={6}
                 pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
@@ -193,18 +193,19 @@ try {
                   <InputOTPSlot index={1} />
                   <InputOTPSlot index={2} />
                 </InputOTPGroup>
-                <InputOTPSeparator />
+                <InputOTPSeparator className="mx-4"/>
                 <InputOTPGroup>
                   <InputOTPSlot index={3} />
                   <InputOTPSlot index={4} />
                   <InputOTPSlot index={5} />
                 </InputOTPGroup>
               </InputOTP>
-            </div>
+            
 
             <p className="text-muted-foreground text-balance">
-              Enter the 6-digit code received via {props.otpmethod}
+              Enter the 6-digit code received in {props.channel}
             </p>
+            </div>
 
             {message && (
               <p className="text-green-600 text-center">{message}</p>
@@ -219,7 +220,7 @@ try {
                 {loading ? "Verifying..." : "Verify"}
               </Button>
 
-              <p className="text-muted-foreground text-center mt-3">
+              <p className="text-muted-foreground text-center mt-2">
                 Didn’t receive the code?{" "}
                 {resendCount >= MAX_RESEND_COUNT ? (
                   <span className="text-muted-foreground">Max resends reached (2)</span>
