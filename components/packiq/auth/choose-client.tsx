@@ -169,7 +169,7 @@ export default function ChooseClient() {
                       priority
                     />
                   ) : (
-                    <div className="flex h-16 w-[206px] items-center justify-center rounded border bg-muted text-muted-foreground">
+                    <div className="flex h-16 w-[110px] items-center justify-center rounded border bg-muted text-muted-foreground">
                       {selectedClient.name.slice(0, 2).toUpperCase()}
                     </div>
                   )}
