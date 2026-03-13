@@ -1,13 +1,13 @@
 import Image from "next/image";
 
-export default function Enterotplayout({
+export default function Selectclientlayout({
   children, // Will be a page or nested layout
 }: {
   children: React.ReactNode;
 }) {
   return (
     <section className="dashboard-wrapper">
-        <div className="enterotpbg pl-8 pt-4">
+        <div className="selectclientbg pl-8 pt-4">
                       <Image
                       src="/piq-logo-Icon-h.png"
                       alt="Company Logo"

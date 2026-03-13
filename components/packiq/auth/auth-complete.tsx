@@ -33,7 +33,7 @@ export function AuthComplete() {
         <div className="py-6">
                 <h1 className="text-2xl font-bold">Authentication Complete!</h1>
                 <p className="text-muted-foreground text-balance">
-                  You've successfully logged into
+                  You have logged in successfully.
                 </p>
               </div>
 </div>
@@ -42,7 +42,7 @@ export function AuthComplete() {
     <FieldGroup className="max-wsm">
 
                     <Field>
-                <Button  type="button" onClick={() => router.push('/data-management/upload-center')}  >Go to dashboard</Button>      
+                <Button  type="button" onClick={() => router.push('/data-management/upload-center')}  >Launch the application.</Button>      
 
                   
               </Field>

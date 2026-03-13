@@ -12,6 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
+  DialogOverlay,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -96,14 +97,14 @@ export default function ChooseClient() {
     <>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <Card>
-          <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex flex-col items-center gap-2 text-center pt-6">
             <h1 className="text-2xl font-bold">Choose the client</h1>
             <p className="text-muted-foreground text-balance">
               Choose the client you want to access
             </p>
           </div>
 
-          <CardContent className="">
+          <CardContent className="pb-4">
             <form
               className=""
               onSubmit={(e) => {
@@ -148,10 +149,10 @@ export default function ChooseClient() {
             </form>
           </CardContent>
         </Card>
-
+<DialogOverlay className="bg-gray-500/40" />
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Client Selection</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Confirm Client Selection</DialogTitle>
             <DialogDescription>
               Please review the client details before continuing
             </DialogDescription>

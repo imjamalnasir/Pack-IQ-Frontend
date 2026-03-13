@@ -24,6 +24,29 @@
   min-height: 100vh;
 }
 
+.enterotpbg{
+
+  background-image: url("/enter-otp-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
+.selectclientbg{
+
+  background-image: url("/select-client-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
+
+
+
+
+
 
 @theme inline {
   --color-background: var(--background);
