@@ -69,7 +69,8 @@ export default function UploadCenter() {
 
   return (
     <>
-      <CardHeader className="py-4 flex flex-row items-start justify-between gap-4">
+    <div className="flex flex-col gap-6">
+      <CardHeader className="p-0 flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             Upload Center
@@ -81,7 +82,7 @@ export default function UploadCenter() {
         <CardAction />
       </CardHeader>
 
-      <Card className="m-6">
+      <Card className="">
         <CardContent>
           <PackIQRadioGroupChoiceCard value={docType} onValueChange={setDocType} />
         </CardContent>
@@ -89,7 +90,7 @@ export default function UploadCenter() {
       </Card>
 
       {uploadFileName != null && (
-        <Card className="m-6">
+        <Card className="">
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div className="space-y-1.5">
               <CardTitle>Upload Progress</CardTitle>
@@ -114,9 +115,9 @@ export default function UploadCenter() {
         </Card>
       )}
 
-      <CardContent>
+      
         <PackIQUploadCenterRecentUploads />
-      </CardContent>
+      </div>
     </>
   )
 }

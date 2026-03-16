@@ -31,13 +31,18 @@ export default function DataManagementLayout({
         <SidebarInset>
 
               
-        <div className="appbg pl-8 pt-4 p-6">
+        <div className="appbg p-6">
+          
 {children}
+
 </div>
         </SidebarInset>
+
     </SidebarProvider>
+
       
     </section>
+
 
     </>
   );

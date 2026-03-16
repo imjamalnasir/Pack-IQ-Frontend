@@ -28,7 +28,7 @@ export function DataDashboardMetricCards() {
             12 Fields
           </CardTitle>
           <CardAction>
-            <Siren  />
+            <Siren className="piqsecondaryColor"  />
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -45,7 +45,7 @@ export function DataDashboardMetricCards() {
             1,842
           </CardTitle>
           <CardAction>
-            <FileCheck />
+            <FileCheck className="piqsecondaryColor"/>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -62,7 +62,7 @@ export function DataDashboardMetricCards() {
             34
           </CardTitle>
           <CardAction>
-<Eye  />          </CardAction>
+<Eye  className="piqsecondaryColor"/>          </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
@@ -78,7 +78,7 @@ export function DataDashboardMetricCards() {
             8
           </CardTitle>
           <CardAction>
-            <ShieldAlert />
+            <ShieldAlert className="piqsecondaryColor"/>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">

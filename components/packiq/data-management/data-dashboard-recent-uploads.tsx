@@ -24,6 +24,7 @@ FileSpreadsheet,
 
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { UploadStatusBadges } from "../badges/uploadStatusBadges"
 
 const recentUploads = [
     {
@@ -170,7 +171,7 @@ export function DataDashboardRecentUpload() {
                         <TableCell >{recentUpload.uploadedBy}</TableCell>
                         <TableCell >{recentUpload.dataTime}</TableCell>
                         <TableCell >{recentUpload.records}</TableCell>
-                        <TableCell ><Badge variant={uploadStatus(recentUpload.status)}>{recentUpload.status}</Badge></TableCell>
+                        <TableCell ><UploadStatusBadges/><Badge variant={uploadStatus(recentUpload.status)}>{recentUpload.status}</Badge></TableCell>
                     </TableRow>
                 ))}
             </TableBody>

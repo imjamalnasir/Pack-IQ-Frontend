@@ -54,7 +54,7 @@ export default function DataDashboard() {
            
 
 
-           <CardHeader  className="py-4 flex flex-row items-start justify-between gap-4">
+           <CardHeader  className="p-0 flex flex-row items-start justify-between gap-4">
             <div className="space-y-1.5">
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
           Data Specialist Dashboard
@@ -71,12 +71,12 @@ export default function DataDashboard() {
   
 
 
-        <CardContent >
+        
           
           <DataDashboardMetricCards/>
           <DataDashboardRecentUpload/>
          
-          </CardContent>
+          
           
         
         

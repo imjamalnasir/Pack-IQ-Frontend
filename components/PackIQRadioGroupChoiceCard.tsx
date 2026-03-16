@@ -28,7 +28,7 @@ export function PackIQRadioGroupChoiceCard({
 }: PackIQRadioGroupChoiceCardProps) {
   return (
     <div className="">
-      <CardTitle className="ml-6">Extraction Type Selection</CardTitle>
+      <CardTitle className="ml-6 mt-2 ">Extraction Type Selection</CardTitle>
       <RadioGroup
         value={value}
         onValueChange={(v) => onValueChange?.(v as DocType)}
