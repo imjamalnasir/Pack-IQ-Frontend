@@ -42,6 +42,36 @@
   min-height: 100vh;
 }
 
+.appbg{
+
+  background-image: url("/appbg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+.bg-sidebar {
+  background-color: rgb(255, 255, 255) !important;
+}
+
+.bg-prime-color{
+
+  background-color: oklch(0.39 0.08 246) !important;
+}
+
+.piqsecondaryColor {
+  color:#EBB652;
+
+  
+}
+
+.piqsecondaryColorBg {
+  background-color:  #EBB652;
+
+  
+}
+
+
 
 
 
@@ -182,5 +212,28 @@
 
   a:hover {
     @apply text-primary/80;
+  }
+
+  a.piq-sidebar-nav-link {
+
+    text-decoration: none!important;
+  }
+    a.piq-sidebar-nav-link:hover {
+
+    color: rgb(53, 53, 53)!important;
+  }
+    a.piq-sidebar-nav-link-active {
+
+    text-decoration: none!important;
+    color: white!important;
+  }
+    a.piq-sidebar-nav-link-active:hover {
+
+    color: beige!important;
+  }
+  .sidebar-nav-group-heading {
+
+    color: var(--primary);
+    font-weight: 600;
   }
 }

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { UploadStatusBadges } from "../badges/uploadStatusBadges"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://3.235.8.53:8080"
 

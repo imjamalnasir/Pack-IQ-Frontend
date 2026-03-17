@@ -72,7 +72,7 @@ export function DataDashboardMetricCards() {
             {criticalLabel}
           </CardTitle>
           <CardAction>
-            <Siren />
+            <Siren className="piqsecondaryColor"  />
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -89,7 +89,7 @@ export function DataDashboardMetricCards() {
             {validatedLabel}
           </CardTitle>
           <CardAction>
-            <FileCheck />
+            <FileCheck className="piqsecondaryColor"/>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -106,8 +106,7 @@ export function DataDashboardMetricCards() {
             {pendingLabel}
           </CardTitle>
           <CardAction>
-            <Eye />
-          </CardAction>
+<Eye  className="piqsecondaryColor"/>          </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
@@ -123,7 +122,7 @@ export function DataDashboardMetricCards() {
             {validationLabel}
           </CardTitle>
           <CardAction>
-            <ShieldAlert />
+            <ShieldAlert className="piqsecondaryColor"/>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
