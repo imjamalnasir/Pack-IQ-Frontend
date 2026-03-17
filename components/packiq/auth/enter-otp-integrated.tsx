@@ -221,11 +221,11 @@ try {
               </Button>
 
               <p className="text-muted-foreground text-center mt-2">
-                Didn’t receive the code?{" "}
                 {resendCount >= MAX_RESEND_COUNT ? (
                   <span className="text-muted-foreground">Max resends reached (2)</span>
                 ) : (
                   <>
+                    Didn’t receive the code?{" "}
                     {countdownSeconds > 0 && (
                       <span className="text-muted-foreground mr-1">
                         Resend in {formatCountdown(countdownSeconds)}

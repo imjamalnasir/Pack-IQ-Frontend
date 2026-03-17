@@ -88,7 +88,7 @@ const data = {
         },
                 {
           title: "Data Completeness",
-          url: "#",
+          url: "/data-management/data-completeness",
         },
                         {
           title: "Sales Management",
