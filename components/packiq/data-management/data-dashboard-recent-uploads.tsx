@@ -121,6 +121,8 @@ export function DataDashboardRecentUpload() {
     //const UploadTypeIconCom = uploadTypeIcon(type);
 
 
+    /* Backup - 16-mar-26 jml
+    
     const uploadStatus = (status: string) => {
         switch (status) {
             case "Completed":
@@ -131,6 +133,23 @@ export function DataDashboardRecentUpload() {
                 return "destructive"  // red
             default:
                 return "outline"
+        }
+
+    }
+*/
+
+/* New Update Status Badage Code - 16mar26 - jml*/
+
+       const uploadStatus = (status: string) => {
+        switch (status) {
+            case "Completed":
+                return "completed"      // green
+            case "Processing":
+                return "processing"      // yellow
+            case "Errors":
+                return "errors"  // red
+            default:
+                return "default"
         }
 
     }
@@ -171,7 +190,11 @@ export function DataDashboardRecentUpload() {
                         <TableCell >{recentUpload.uploadedBy}</TableCell>
                         <TableCell >{recentUpload.dataTime}</TableCell>
                         <TableCell >{recentUpload.records}</TableCell>
-                        <TableCell ><UploadStatusBadges/><Badge variant={uploadStatus(recentUpload.status)}>{recentUpload.status}</Badge></TableCell>
+                        <TableCell >
+                            
+                            <UploadStatusBadges variant={uploadStatus(recentUpload.status)}>{recentUpload.status}</UploadStatusBadges>
+                            
+                        </TableCell>
                     </TableRow>
                 ))}
             </TableBody>

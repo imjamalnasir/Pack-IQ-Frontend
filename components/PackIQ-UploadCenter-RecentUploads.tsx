@@ -82,7 +82,7 @@ export function PackIQUploadCenterRecentUploads() {
   // Old color code: Completed = green, Processing = yellow, Errors = red
   const uploadStatusClass = (status: string) => {
     const n = normalizeStatus(status).toLowerCase()
-    if (n === "completed") return "bg-green-100 text-green-800 border-green-200"
+    if (n === "completed") return "piqsecondaryColorBg text-primary-foreground [a]:hover:bg-primary/80"
     if (n === "processing") return "bg-yellow-100 text-yellow-800 border-yellow-200"
     if (n === "errors") return "bg-red-100 text-red-800 border-red-200"
     return "border-border text-foreground"
@@ -131,6 +131,7 @@ export function PackIQUploadCenterRecentUploads() {
                   </TableCell>
                   <TableCell>{getDateTime(row)}</TableCell>
                   <TableCell>
+                    
                     <Badge variant="outline" className={uploadStatusClass(row.status ?? "")}>
                       {getStatus(row)}
                     </Badge>

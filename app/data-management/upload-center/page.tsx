@@ -117,6 +117,7 @@ export default function UploadCenter() {
 
       
         <PackIQUploadCenterRecentUploads />
+        
       </div>
     </>
   )
