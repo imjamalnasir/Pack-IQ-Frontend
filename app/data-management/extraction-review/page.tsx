@@ -76,6 +76,92 @@ interface BomsResponse {
   boms?: BomItem[]
 }
 
+/** Sales table row (dynamic keys). */
+interface SalesRow {
+  [key: string]: unknown
+}
+
+/** Normalize sales API response into a list of rows for the table. */
+function normalizeSalesResponse(data: unknown): { rows: SalesRow[]; summary?: Record<string, unknown> } | null {
+  if (data == null) return null
+  let rows: unknown[] | null = null
+  let summary: Record<string, unknown> | undefined
+  if (Array.isArray(data)) {
+    rows = data
+  } else if (typeof data === "object") {
+    const o = data as Record<string, unknown>
+    if (Array.isArray(o.sales)) rows = o.sales
+    else if (Array.isArray(o.items)) rows = o.items
+    else if (Array.isArray(o.records)) rows = o.records
+    else if (Array.isArray(o.line_items)) rows = o.line_items
+    else if (Array.isArray(o.data)) rows = o.data
+    else if (o.data != null && typeof o.data === "object" && Array.isArray((o.data as Record<string, unknown>).sales))
+      rows = (o.data as { sales: unknown[] }).sales
+    else if (o.sales != null && typeof o.sales === "object" && !Array.isArray(o.sales))
+      rows = [o.sales]
+    else {
+      summary = o
+      rows = []
+    }
+  }
+  if (rows == null) return null
+  const normalized = rows
+    .filter((r): r is Record<string, unknown> => r != null && typeof r === "object")
+    .map((r) => ({ ...r } as SalesRow))
+  return { rows: normalized, summary }
+}
+
+/** Normalize a component row: ensure "name" exists for Spec ID column (API may send spec_id / component_name). */
+function normalizeComponentRow(raw: unknown): ComponentRow {
+  if (raw == null || typeof raw !== "object") return { name: "" }
+  const r = raw as Record<string, unknown>
+  const name = r.name ?? r.spec_id ?? r.component_name
+  const row: ComponentRow = { ...r, name: name != null ? String(name) : "" }
+  return row
+}
+
+/** Normalize a single BOM object to our BomItem shape (snake_case, components array). */
+function normalizeBomItem(raw: unknown): BomItem | null {
+  if (raw == null || typeof raw !== "object") return null
+  const r = raw as Record<string, unknown>
+  const bomId = r.bom_id ?? r.bomId ?? r.id
+  const product = r.product
+  const effectiveDate = r.effective_date ?? r.effectiveDate
+  const components = Array.isArray(r.components) ? r.components : Array.isArray(r.parts) ? r.parts : []
+  const normalizedComponents = components.map(normalizeComponentRow)
+  return {
+    bom_id: bomId != null ? String(bomId) : undefined,
+    product: product != null ? (product as string) : undefined,
+    effective_date: effectiveDate != null ? (effectiveDate as string) : undefined,
+    components: normalizedComponents,
+  }
+}
+
+/** Normalize various API response shapes into { boms: BomItem[] }. */
+function normalizeBomsResponse(data: unknown): BomsResponse | null {
+  if (data == null) return null
+  let arr: unknown[] | null = null
+  if (Array.isArray(data)) arr = data
+  else if (typeof data === "object") {
+    const o = data as Record<string, unknown>
+    if (Array.isArray(o.boms)) arr = o.boms
+    else if (Array.isArray(o.data)) arr = o.data
+    else if (o.data != null && typeof o.data === "object" && Array.isArray((o.data as Record<string, unknown>).boms))
+      arr = (o.data as { boms: unknown[] }).boms
+    else if (o.bom != null && typeof o.bom === "object") arr = [o.bom]
+    else if (Array.isArray(o.content)) arr = o.content
+    else if (Array.isArray(o.items)) arr = o.items
+    // API returns a single BOM object at top level (bom_id, product, components)
+    else if (o.bom_id != null || o.product != null || Array.isArray(o.components)) {
+      const single = normalizeBomItem(o)
+      return single ? { boms: [single] } : null
+    }
+  }
+  if (!arr?.length) return null
+  const boms = arr.map(normalizeBomItem).filter((b): b is BomItem => b != null)
+  return boms.length ? { boms } : null
+}
+
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
   const headers: HeadersInit = { "Content-Type": "application/json" }
@@ -102,7 +188,16 @@ export default function ExtractionReviewPage() {
 
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<ComponentRow | null>(null)
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const originalRowRef = useRef<ComponentRow | null>(null)
+
+  const [salesRowsState, setSalesRowsState] = useState<SalesRow[]>([])
+  const [editingSalesRowIndex, setEditingSalesRowIndex] = useState<number | null>(null)
+  const [salesEditDraft, setSalesEditDraft] = useState<SalesRow | null>(null)
+  const [salesSaveLoading, setSalesSaveLoading] = useState(false)
+  const [salesSaveError, setSalesSaveError] = useState<string | null>(null)
+  const originalSalesRowRef = useRef<SalesRow | null>(null)
 
   // Fetch extraction lists on mount (BOM list returns { boms: [...] })
   useEffect(() => {
@@ -124,7 +219,7 @@ export default function ExtractionReviewPage() {
       .finally(() => setListsLoading(false))
   }, [])
 
-  // Fetch BOM detail when selected (response: { boms: [ { bom_id, product, components, ... } ] })
+  // Fetch BOM detail when selected (response may be { boms: [...] } or array or { data: [...] } etc.)
   useEffect(() => {
     if (!selectedBom) {
       setBomDetail(null)
@@ -134,8 +229,12 @@ export default function ExtractionReviewPage() {
     }
     setDetailLoading(true)
     fetch(`${API_URL}/extractions/boms/${selectedBom}`, { credentials: "include", headers: getAuthHeaders() })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: BomsResponse | null) => setBomDetail(data))
+      .then(async (r) => {
+        const data = await r.json().catch(() => null)
+        if (!r.ok) return null
+        return normalizeBomsResponse(data)
+      })
+      .then(setBomDetail)
       .catch(() => setBomDetail(null))
       .finally(() => setDetailLoading(false))
   }, [selectedBom])
@@ -158,6 +257,9 @@ export default function ExtractionReviewPage() {
   useEffect(() => {
     if (!selectedSales) {
       setSalesDetail(null)
+      setSalesRowsState([])
+      setEditingSalesRowIndex(null)
+      setSalesEditDraft(null)
       return
     }
     setDetailLoading(true)
@@ -167,6 +269,16 @@ export default function ExtractionReviewPage() {
       .catch(() => setSalesDetail(null))
       .finally(() => setDetailLoading(false))
   }, [selectedSales])
+
+  // Sync editable sales rows from API response
+  useEffect(() => {
+    const norm = normalizeSalesResponse(salesDetail)
+    const rows = norm?.rows ?? []
+    setSalesRowsState(rows)
+    setEditingSalesRowIndex(null)
+    setSalesEditDraft(null)
+    originalSalesRowRef.current = null
+  }, [salesDetail])
 
   const bom = bomDetail?.boms?.[0] ?? null
   const bomDetailDisplay = bom
@@ -179,15 +291,97 @@ export default function ExtractionReviewPage() {
   const componentsRows: ComponentRow[] = bom?.components ?? []
   const bomEffectiveDate = bom?.effective_date ?? null
 
-  const getComponentCell = (row: ComponentRow, key: "specId" | "qty" | "description" | "effectiveDate") => {
-    if (!row) return "—"
-    if (key === "effectiveDate") return row.effective_date != null ? String(row.effective_date) : (bomEffectiveDate != null ? String(bomEffectiveDate) : "—")
-    const map: Record<string, string> = {
-      specId: String(row.spec_id ?? ""),
-      qty: String(row.qty ?? ""),
-      description: String(row.description ?? ""),
+  const normalizedSales = normalizeSalesResponse(salesDetail)
+  const salesSummary = normalizedSales?.summary
+  const salesRows: SalesRow[] = salesRowsState
+  const salesDataKeys = (() => {
+    const keySet = new Set<string>()
+    for (const row of salesRows) {
+      if (row && typeof row === "object") {
+        for (const [k, v] of Object.entries(row)) {
+          if (v != null && v !== "") keySet.add(k)
+        }
+      }
     }
-    return map[key] ?? "—"
+    const sorted = Array.from(keySet).sort()
+    if (sorted.includes("sku")) return ["sku", ...sorted.filter((k) => k !== "sku")]
+    return sorted
+  })()
+  const getSalesCellValue = (row: SalesRow, key: string): string => {
+    if (!row) return "—"
+    const v = row[key]
+    return v != null && v !== "" ? String(v) : "—"
+  }
+  const salesFirstColumnKey = salesDataKeys[0] ?? ""
+
+  const startEditingSales = (index: number) => {
+    const row = salesRows[index]
+    if (!row) return
+    const copy = { ...row }
+    originalSalesRowRef.current = copy
+    setSalesEditDraft(copy)
+    setEditingSalesRowIndex(index)
+  }
+  const saveSalesEdit = () => {
+    if (editingSalesRowIndex == null || salesEditDraft == null) return
+    setSalesRowsState((prev) => {
+      const next = [...prev]
+      next[editingSalesRowIndex] = { ...salesEditDraft }
+      return next
+    })
+    setEditingSalesRowIndex(null)
+    setSalesEditDraft(null)
+    originalSalesRowRef.current = null
+  }
+  const undoSalesEdit = () => {
+    if (originalSalesRowRef.current) setSalesEditDraft({ ...originalSalesRowRef.current })
+  }
+  const updateSalesDraft = (field: string, value: string | number | null) => {
+    if (salesEditDraft) setSalesEditDraft({ ...salesEditDraft, [field]: value })
+  }
+  const saveSalesToBackend = () => {
+    if (!selectedSales) return
+    setSalesSaveError(null)
+    setSalesSaveLoading(true)
+    fetch(`${API_URL}/extractions/sales/${selectedSales}/edit`, {
+      method: "POST",
+      credentials: "include",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ sales: salesRowsState }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(r.statusText || "Save failed")
+      })
+      .catch((err) => setSalesSaveError(err instanceof Error ? err.message : "Save failed"))
+      .finally(() => setSalesSaveLoading(false))
+  }
+
+  // Collect all keys that have a non-null value in at least one component (excluding "name" which is shown as Spec ID)
+  const componentDataKeys = (() => {
+    const keySet = new Set<string>()
+    for (const comp of componentsRows) {
+      if (comp && typeof comp === "object") {
+        for (const [k, v] of Object.entries(comp)) {
+          if (k !== "name" && k !== "spec_id" && v != null && v !== "") keySet.add(k)
+        }
+      }
+    }
+    return Array.from(keySet).sort()
+  })()
+
+  const formatHeader = (key: string) =>
+    key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+
+  const getDynamicCellValue = (row: ComponentRow, key: string): string => {
+    if (!row) return "—"
+    const v = key === "name" ? row.name : row[key]
+    return v != null && v !== "" ? String(v) : "—"
+  }
+
+  const getSpecIdDisplay = (row: ComponentRow): string => {
+    if (!row) return "—"
+    const name = row.name
+    return name != null && name !== "" ? String(name) : "—"
   }
 
   const startEditing = (index: number) => {
@@ -215,8 +409,27 @@ export default function ExtractionReviewPage() {
     if (originalRowRef.current) setEditDraft({ ...originalRowRef.current })
   }
 
-  const updateDraft = (field: keyof ComponentRow, value: string | number | null) => {
+  const updateDraft = (field: string, value: string | number | null) => {
     if (editDraft) setEditDraft({ ...editDraft, [field]: value })
+  }
+
+  const saveToBackend = () => {
+    const jobId = selectedBom
+    const packaging = bom ?? null
+    if (!jobId || !packaging) return
+    setSaveError(null)
+    setSaveLoading(true)
+    fetch(`${API_URL}/extractions/${docType}/${jobId}/edit`, {
+      method: "POST",
+      credentials: "include",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ packaging }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(r.statusText || "Save failed")
+      })
+      .catch((err) => setSaveError(err instanceof Error ? err.message : "Save failed"))
+      .finally(() => setSaveLoading(false))
   }
 
   return (
@@ -253,32 +466,30 @@ export default function ExtractionReviewPage() {
         >
           <CardContent className="pt-0 flex flex-col flex-1">
             <Field className="flex flex-col flex-1">
-
-            <FieldContent className="gap-2">
-              <FileSpreadsheet />
-              <FieldTitle>BOM Only</FieldTitle>
-              <FieldDescription>
-                Bill of Materials data including component weights and materials
-              </FieldDescription>
-            </FieldContent>
-
-             
-
+              <FieldContent className="gap-2">
+                <FileSpreadsheet className="size-8 shrink-0 text-muted-foreground" />
+                <FieldTitle>BOM Only</FieldTitle>
+                <FieldDescription className="line-clamp-2">
+                  Bill of Materials data including component weights and materials
+                </FieldDescription>
+              </FieldContent>
               <div className="mt-0 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Select value={selectedBom || undefined} onValueChange={setSelectedBom} disabled={listsLoading}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bomList.map((item) => {
-                      const value = String(item.bom_id ?? item.extractedId ?? "")
-                      const label = String((item.bom_id ?? item.product ?? item.extractedId ?? value) || "—")
-                      return (
-                        <SelectItem key={value ? value : `bom-${String(item.product ?? "row")}`} value={value}>
-                          {label}
-                        </SelectItem>
-                      )
-                    })}
+                    {bomList
+                      .filter((item) => (item.extractedId ?? item.bom_id ?? "") !== "")
+                      .map((item) => {
+                        const value = String(item.extractedId ?? item.bom_id)
+                        const label = String(item.bom_id ?? item.product ?? item.extractedId ?? value)
+                        return (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        )
+                      })}
                   </SelectContent>
                 </Select>
               </div>
@@ -305,16 +516,21 @@ export default function ExtractionReviewPage() {
                 </FieldDescription>
               </FieldContent>
               <div className="mt-4 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <Select value={selectedSpec || undefined} onValueChange={setSelectedSpec} disabled={listsLoading}>
+                <Select value={selectedSpec || undefined} onValueChange={setSelectedSpec} disabled={listsLoading || docType !== "spec"}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {specList.map((item) => (
-                      <SelectItem key={item.extractedId ?? item.bom_id ?? ""} value={(item.extractedId ?? item.bom_id) ?? ""}>
-                        {item.extractedId ?? item.bom_id ?? ""}
-                      </SelectItem>
-                    ))}
+                    {specList
+                      .filter((item) => ((item.extractedId ?? item.bom_id) ?? "") !== "")
+                      .map((item) => {
+                        const value = String(item.extractedId ?? item.bom_id)
+                        return (
+                          <SelectItem key={value} value={value}>
+                            {item.extractedId ?? item.bom_id ?? value}
+                          </SelectItem>
+                        )
+                      })}
                   </SelectContent>
                 </Select>
               </div>
@@ -339,26 +555,27 @@ export default function ExtractionReviewPage() {
                 </FieldDescription>
               </FieldContent>
               <div className="mt-4 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <Select value={selectedSales || undefined} onValueChange={setSelectedSales} disabled={listsLoading}>
+                <Select value={selectedSales || undefined} onValueChange={setSelectedSales} disabled={listsLoading || docType !== "sales"}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {salesList.map((item) => {
-                      const val = (item.extractedId ?? item.bom_id) ?? ""
-                      return (
-                        <SelectItem key={val ? val : "sales-row"} value={val}>
-                          {(item.extractedId ?? item.bom_id ?? val) || "—"}
-                        </SelectItem>
-                      )
-                    })}
+                    {salesList
+                      .filter((item) => (item.extractedId ?? item.bom_id ?? "") !== "")
+                      .map((item) => {
+                        const value = String(item.extractedId ?? item.bom_id)
+                        return (
+                          <SelectItem key={value} value={value}>
+                            {item.extractedId ?? item.bom_id ?? value}
+                          </SelectItem>
+                        )
+                      })}
                   </SelectContent>
                 </Select>
               </div>
             </Field>
           </CardContent>
         </Card>
-       
       </div>
       
 
@@ -408,9 +625,9 @@ export default function ExtractionReviewPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Spec ID</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Effective date</TableHead>
+                    {componentDataKeys.map((key) => (
+                      <TableHead key={key}>{formatHeader(key)}</TableHead>
+                    ))}
                     <TableHead className="w-[120px] text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -420,34 +637,25 @@ export default function ExtractionReviewPage() {
                     const displayRow = isEditing && editDraft ? editDraft : row
                     return (
                       <TableRow key={i}>
-                        <TableCell className="font-medium">{getComponentCell(displayRow, "specId")}</TableCell>
+                        <TableCell className="font-medium">{getSpecIdDisplay(displayRow)}</TableCell>
                         {isEditing ? (
                           <>
-                            <TableCell>
-                              <Input
-                                value={String(displayRow.qty ?? "")}
-                                onChange={(e) => updateDraft("qty", e.target.value === "" ? null : Number(e.target.value) || e.target.value)}
-                                className="h-8 w-full min-w-[4rem]"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                value={String(displayRow.description ?? "")}
-                                onChange={(e) => updateDraft("description", e.target.value)}
-                                className="h-8 w-full"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                value={displayRow.effective_date != null ? String(displayRow.effective_date) : (bomEffectiveDate != null ? String(bomEffectiveDate) : "")}
-                                onChange={(e) => updateDraft("effective_date", e.target.value || null)}
-                                className="h-8 w-full"
-                              />
-                            </TableCell>
+                            {componentDataKeys.map((key) => (
+                              <TableCell key={key}>
+                                <Input
+                                  value={String(displayRow[key] ?? "")}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    updateDraft(key, val === "" ? null : Number(val) || val)
+                                  }}
+                                  className="h-8 w-full min-w-0"
+                                />
+                              </TableCell>
+                            ))}
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button type="button" size="sm" variant="outline" className="bg-yellow-500 text-white border-yellow-200 hover:bg-yellow-200" onClick={saveEdit}>
-                                  Save
+                                <Button type="button" size="sm" variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200" onClick={saveEdit}>
+                                  Done
                                 </Button>
                                 <Button type="button" size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={undoEdit} aria-label="Undo">
                                   <Undo2 className="size-4" />
@@ -457,9 +665,9 @@ export default function ExtractionReviewPage() {
                           </>
                         ) : (
                           <>
-                            <TableCell>{getComponentCell(displayRow, "qty")}</TableCell>
-                            <TableCell>{getComponentCell(displayRow, "description")}</TableCell>
-                            <TableCell>{getComponentCell(displayRow, "effectiveDate")}</TableCell>
+                            {componentDataKeys.map((key) => (
+                              <TableCell key={key}>{getDynamicCellValue(displayRow, key)}</TableCell>
+                            ))}
                             <TableCell className="text-right">
                               <Button type="button" size="icon" variant="default" className="h-8 w-8 shrink-0" onClick={() => startEditing(i)} aria-label="Edit row">
                                 <Pencil className="size-4" />
@@ -472,6 +680,14 @@ export default function ExtractionReviewPage() {
                   })}
                 </TableBody>
               </Table>
+            )}
+            {!detailLoading && componentsRows.length > 0 && (
+              <div className="mt-4 flex items-center gap-3">
+                <Button type="button" onClick={saveToBackend} disabled={saveLoading}>
+                  {saveLoading ? "Saving…" : "Save"}
+                </Button>
+                {saveError && <p className="text-sm text-destructive">{saveError}</p>}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -497,21 +713,120 @@ export default function ExtractionReviewPage() {
         </Card>
       )}
 
-      {/* Sales detail - show when Sales selected and has selection */}
+      {/* Sales Details card - show when Sales selected */}
       {docType === "sales" && selectedSales && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Sales Details</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {detailLoading ? (
               <p className="text-muted-foreground text-sm">Loading…</p>
-            ) : salesDetail ? (
-              <pre className="text-sm overflow-auto rounded bg-muted/50 p-4 max-h-96">
-                {JSON.stringify(salesDetail, null, 2)}
-              </pre>
+            ) : salesSummary && Object.keys(salesSummary).length > 0 ? (
+              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                {Object.entries(salesSummary).map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="font-medium text-muted-foreground">{k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</dt>
+                    <dd>{v != null && v !== "" ? String(v) : "—"}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : salesRows.length > 0 ? (
+              <p className="text-muted-foreground text-sm">See table below for records.</p>
             ) : (
               <p className="text-muted-foreground text-sm">No details available.</p>
+            )}
+            {!detailLoading && salesRows.length === 0 && !(salesSummary && Object.keys(salesSummary).length > 0) && salesDetail != null && (
+              <pre className="text-sm overflow-auto rounded bg-muted/50 p-4 max-h-48">
+                {JSON.stringify(salesDetail, null, 2)}
+              </pre>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sales table - show when Sales selected, same structure as BOM with editing */}
+      {docType === "sales" && selectedSales && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sales Data</CardTitle>
+            <CardDescription>
+              Line items and sales records from the extracted document
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {detailLoading ? (
+              <p className="text-muted-foreground text-sm py-4">Loading…</p>
+            ) : salesRows.length === 0 ? (
+              <p className="text-muted-foreground text-sm py-4">No sales records.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {salesDataKeys.map((key) => (
+                      <TableHead key={key}>{formatHeader(key)}</TableHead>
+                    ))}
+                    <TableHead className="w-[120px] text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {salesRows.map((row, i) => {
+                    const isEditing = editingSalesRowIndex === i
+                    const displayRow = isEditing && salesEditDraft ? salesEditDraft : row
+                    return (
+                      <TableRow key={i}>
+                        {isEditing ? (
+                          <>
+                            {salesDataKeys.map((key) => (
+                              <TableCell key={key}>
+                                <Input
+                                  value={String(displayRow[key] ?? "")}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    updateSalesDraft(key, val === "" ? null : Number(val) || val)
+                                  }}
+                                  className="h-8 w-full min-w-0"
+                                />
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button type="button" size="sm" variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200" onClick={saveSalesEdit}>
+                                  Done
+                                </Button>
+                                <Button type="button" size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={undoSalesEdit} aria-label="Undo">
+                                  <Undo2 className="size-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            {salesDataKeys.map((key) => (
+                              <TableCell key={key} className={key === salesFirstColumnKey ? "font-medium" : ""}>
+                                {getSalesCellValue(displayRow, key)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right">
+                              <Button type="button" size="icon" variant="default" className="h-8 w-8 shrink-0" onClick={() => startEditingSales(i)} aria-label="Edit row">
+                                <Pencil className="size-4" />
+                              </Button>
+                            </TableCell>
+                          </>
+                        )}
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+            {!detailLoading && salesRows.length > 0 && (
+              <div className="mt-4 flex items-center gap-3">
+                <Button type="button" onClick={saveSalesToBackend} disabled={salesSaveLoading}>
+                  {salesSaveLoading ? "Saving…" : "Save"}
+                </Button>
+                {salesSaveError && <p className="text-sm text-destructive">{salesSaveError}</p>}
+              </div>
             )}
           </CardContent>
         </Card>

@@ -25,7 +25,7 @@ export function EnterOtp(props: any) {
                 <div>{props.otp}</div>
                 <h1 className="text-2xl font-bold">Enter verification code</h1>
                 <p className="text-muted-foreground text-balance">
-                  We sent a 6-digit code via {props.otpmethod}
+                  We sent a 6-digit code
                 </p>
               </div>
               <CardContent className="">
@@ -48,7 +48,7 @@ export function EnterOtp(props: any) {
 </div>
 
                     <p className="text-muted-foreground text-balance">
-                  Enter the 6-digit code received via {props.otpmethod}
+                  Enter the 6-digit code received
                 </p>
                                     <Field>
                 <Button type="button" onClick={() => router.push('/select-client')}>Verify</Button>       
