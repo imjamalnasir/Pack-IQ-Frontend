@@ -5,7 +5,7 @@ export function PackIQLogoIcon({ className }: { className?: string }) {
     <Image
       src="/Pack-IQ-App-Logo-v6.svg"
       alt="Pack IQ"
-      width={199}
+      width={150}
       height={66}
       className={className}
     />

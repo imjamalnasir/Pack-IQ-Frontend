@@ -82,11 +82,19 @@ export function DataDashboardRecentUpload() {
     return "bg-green-100 text-green-800 border-green-200"
   }
 
+  const uploadStatusClass = (status: string) => {
+    const n = normalizeStatus(status).toLowerCase()
+    if (n === "completed") return "piqsecondaryColorBg text-primary-foreground [a]:hover:bg-primary/80"
+    if (n === "processing") return "bg-yellow-100 text-yellow-800 border-yellow-200"
+    if (n === "errors") return "bg-red-100 text-red-800 border-red-200"
+    return "border-border text-foreground"
+  }
+
   const uploadStatus = (status: string) => {
     const n = normalizeStatus(status).toLowerCase()
-    if (n === "completed") return "default"
-    if (n === "processing") return "secondary"
-    if (n === "errors") return "destructive"
+    if (n === "completed") return "piqsecondaryColorBg text-primary-foreground [a]:hover:bg-primary/80"
+    if (n === "processing") return "bg-yellow-100 text-yellow-800 border-yellow-200"
+    if (n === "errors") return "bg-red-100 text-red-800 border-red-200"
     return "outline"
   }
 
@@ -133,7 +141,8 @@ export function DataDashboardRecentUpload() {
                   <TableCell>{formatDateTime(row.createdAt)}</TableCell>
                   <TableCell>{row.records != null ? String(row.records) : "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={uploadStatus(row.status ?? "")}>
+                 
+                   <Badge variant="outline" className={uploadStatus(row.status ?? "")}>
                       {normalizeStatus(row.status)}
                     </Badge>
                   </TableCell>

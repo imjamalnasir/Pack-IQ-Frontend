@@ -29,6 +29,7 @@ export default function DataManagementLayout({
         
      
         <SidebarInset>
+         
 
               
         <div className="appbg p-6">

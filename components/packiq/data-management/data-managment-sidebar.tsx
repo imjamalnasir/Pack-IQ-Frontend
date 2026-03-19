@@ -33,6 +33,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 
 import { DataManagmentSideBarNav } from "./data-managment-sidebar-nav";
@@ -198,10 +199,12 @@ export function DataManagmentSideBar({ ...props }: React.ComponentProps<typeof S
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+       <SidebarHeader className="flex flex-row items-center justify-between p-2">
         <div className="group-data-[collapsible=icon]:hidden">
         <PackIQLogoIcon />
         </div>
+                {/* ✅ Toggle button */}
+        <SidebarTrigger className="h-8 w-8" />
         { /*<TeamSwitcher teams={data.teams} />*/}
       </SidebarHeader>
       <SidebarContent>
