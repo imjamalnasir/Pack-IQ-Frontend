@@ -144,7 +144,10 @@ function normalizeBomsResponse(data: unknown): BomsResponse | null {
   if (Array.isArray(data)) arr = data
   else if (typeof data === "object") {
     const o = data as Record<string, unknown>
-    if (Array.isArray(o.boms)) arr = o.boms
+    // New API shape: { job_id, packaging: { boms: [...] } }
+    const packaging = o.packaging as Record<string, unknown> | undefined
+    if (packaging != null && Array.isArray(packaging.boms)) arr = packaging.boms
+    else if (Array.isArray(o.boms)) arr = o.boms
     else if (Array.isArray(o.data)) arr = o.data
     else if (o.data != null && typeof o.data === "object" && Array.isArray((o.data as Record<string, unknown>).boms))
       arr = (o.data as { boms: unknown[] }).boms
@@ -160,6 +163,76 @@ function normalizeBomsResponse(data: unknown): BomsResponse | null {
   if (!arr?.length) return null
   const boms = arr.map(normalizeBomItem).filter((b): b is BomItem => b != null)
   return boms.length ? { boms } : null
+}
+
+/** Normalize BOM list API response to ExtractionListItem[] for the dropdown. Handles ids only (string[] or [{ job_id }]) or full objects. */
+function normalizeBomListResponse(data: unknown): ExtractionListItem[] {
+  if (data == null) return []
+  if (Array.isArray(data)) {
+    return data.map((item: unknown): ExtractionListItem => {
+      if (item == null) return { extractedId: "", bom_id: "" }
+      if (typeof item === "string") {
+        return { extractedId: item, bom_id: item }
+      }
+      const r = item as Record<string, unknown>
+      const jobId = r.job_id ?? r.extractedId ?? r.id
+      const idStr = jobId != null ? String(jobId) : ""
+      const pkg = r.packaging as Record<string, unknown> | undefined
+      const boms = Array.isArray(pkg?.boms) ? pkg.boms : []
+      const first = boms[0] as Record<string, unknown> | undefined
+      return {
+        extractedId: idStr || undefined,
+        bom_id: first?.bom_id != null ? String(first.bom_id) : idStr || undefined,
+        product: first?.product != null ? String(first.product) : undefined,
+        ...r,
+      } as ExtractionListItem
+    })
+  }
+  const o = data as Record<string, unknown>
+  const packaging = o.packaging as Record<string, unknown> | undefined
+  if (packaging != null && Array.isArray(packaging.boms)) {
+    const jobId = o.job_id ?? o.extractedId
+    const boms = packaging.boms as Record<string, unknown>[]
+    const first = boms[0]
+    if (!first) return []
+    return [
+      {
+        extractedId: jobId != null ? String(jobId) : undefined,
+        bom_id: first.bom_id != null ? String(first.bom_id) : undefined,
+        product: first.product != null ? String(first.product) : undefined,
+        ...o,
+      },
+    ] as ExtractionListItem[]
+  }
+  if (Array.isArray(o.bom_ids)) {
+    return (o.bom_ids as string[]).map((id) => ({ extractedId: id, bom_id: id }))
+  }
+  if (Array.isArray(o.ids)) return normalizeBomListResponse(o.ids)
+  if (Array.isArray(o.job_ids)) return normalizeBomListResponse(o.job_ids)
+  const legacy = (o.boms ?? []) as ExtractionListItem[]
+  return Array.isArray(legacy) ? legacy : []
+}
+
+/** Normalize specs list API response. Handles { spec_ids: [...] } or legacy { specs: [...] } / array. */
+function normalizeSpecListResponse(data: unknown): ExtractionListItem[] {
+  if (data == null) return []
+  const o = data as Record<string, unknown>
+  if (Array.isArray(o.spec_ids)) {
+    return (o.spec_ids as string[]).map((id) => ({ extractedId: id, bom_id: id }))
+  }
+  const legacy = (o.specs ?? (Array.isArray(data) ? data : [])) as ExtractionListItem[]
+  return Array.isArray(legacy) ? legacy : []
+}
+
+/** Normalize sales list API response. Handles { sales_ids: [...] } or legacy { sales: [...] } / array. */
+function normalizeSalesListResponse(data: unknown): ExtractionListItem[] {
+  if (data == null) return []
+  const o = data as Record<string, unknown>
+  if (Array.isArray(o.sales_ids)) {
+    return (o.sales_ids as string[]).map((id) => ({ extractedId: id, bom_id: id }))
+  }
+  const legacy = (o.sales ?? (Array.isArray(data) ? data : [])) as ExtractionListItem[]
+  return Array.isArray(legacy) ? legacy : []
 }
 
 function getAuthHeaders(): HeadersInit {
@@ -199,7 +272,7 @@ export default function ExtractionReviewPage() {
   const [salesSaveError, setSalesSaveError] = useState<string | null>(null)
   const originalSalesRowRef = useRef<SalesRow | null>(null)
 
-  // Fetch extraction lists on mount (BOM list returns { boms: [...] })
+  // Fetch extraction lists on mount (BOM list may be { boms: [...] } or array of { job_id, packaging: { boms } })
   useEffect(() => {
     const headers = getAuthHeaders()
     Promise.all([
@@ -208,9 +281,9 @@ export default function ExtractionReviewPage() {
       fetch(`${API_URL}/extractions/sales`, { credentials: "include", headers }).then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([bomsData, specsData, salesData]) => {
-        const bomsArr = (bomsData?.boms ?? (Array.isArray(bomsData) ? bomsData : [])) as ExtractionListItem[]
-        const specsArr = (specsData?.specs ?? (Array.isArray(specsData) ? specsData : [])) as ExtractionListItem[]
-        const salesArr = (salesData?.sales ?? (Array.isArray(salesData) ? salesData : [])) as ExtractionListItem[]
+        const bomsArr = normalizeBomListResponse(bomsData)
+        const specsArr = normalizeSpecListResponse(specsData)
+        const salesArr = normalizeSalesListResponse(salesData)
         setBomList(bomsArr)
         setSpecList(specsArr)
         setSalesList(salesArr)
@@ -702,45 +775,97 @@ export default function ExtractionReviewPage() {
           <CardContent>
             {detailLoading ? (
               <p className="text-muted-foreground text-sm">Loading…</p>
-            ) : specDetail ? (
-              <pre className="text-sm overflow-auto rounded bg-muted/50 p-4 max-h-96">
-                {JSON.stringify(specDetail, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-muted-foreground text-sm">No details available.</p>
-            )}
+            ) : (() => {
+              const specObj =
+                specDetail != null && typeof specDetail === "object" && !Array.isArray(specDetail)
+                  ? (specDetail as Record<string, unknown>)
+                  : Array.isArray(specDetail) && specDetail.length > 0
+                    ? ((specDetail[0] as Record<string, unknown>) ?? {})
+                    : null
+              if (!specObj) {
+                return specDetail != null ? <p className="text-sm">{String(specDetail)}</p> : <p className="text-muted-foreground text-sm">No details available.</p>
+              }
+              const entries = Object.entries(specObj).filter(
+                ([, value]) => value != null && value !== ""
+              )
+              if (entries.length === 0) {
+                return <p className="text-muted-foreground text-sm">No details available.</p>
+              }
+              const mid = Math.ceil(entries.length / 2)
+              const leftCol = entries.slice(0, mid)
+              const rightCol = entries.slice(mid)
+              const renderValue = (value: unknown) =>
+                value == null || value === "" ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value)
+              return (
+                <div className="grid grid-cols-2 gap-x-10 gap-y-4 text-sm">
+                  <div className="space-y-4">
+                    {leftCol.map(([key, value]) => (
+                      <div key={key} className="flex justify-between gap-4">
+                        <span className="font-semibold text-foreground">{formatHeader(key)}</span>
+                        <span className="text-muted-foreground text-right">{renderValue(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-4">
+                    {rightCol.map(([key, value]) => (
+                      <div key={key} className="flex justify-between gap-4">
+                        <span className="font-semibold text-foreground">{formatHeader(key)}</span>
+                        <span className="text-muted-foreground text-right">{renderValue(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
           </CardContent>
         </Card>
       )}
 
-      {/* Sales Details card - show when Sales selected */}
+      {/* Sales Details card - show when Sales selected, two-column label-value like Spec Details */}
       {docType === "sales" && selectedSales && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Sales Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             {detailLoading ? (
               <p className="text-muted-foreground text-sm">Loading…</p>
-            ) : salesSummary && Object.keys(salesSummary).length > 0 ? (
-              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
-                {Object.entries(salesSummary).map(([k, v]) => (
-                  <div key={k}>
-                    <dt className="font-medium text-muted-foreground">{k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</dt>
-                    <dd>{v != null && v !== "" ? String(v) : "—"}</dd>
+            ) : (() => {
+              const summary = salesSummary && typeof salesSummary === "object" && !Array.isArray(salesSummary) ? salesSummary as Record<string, unknown> : null
+              const entries = summary ? Object.entries(summary).filter(([, v]) => v != null && v !== "") : []
+              if (entries.length === 0) {
+                return salesRows.length > 0 ? (
+                  <p className="text-muted-foreground text-sm">See table below for records.</p>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No details available.</p>
+                )
+              }
+              const mid = Math.ceil(entries.length / 2)
+              const leftCol = entries.slice(0, mid)
+              const rightCol = entries.slice(mid)
+              const renderValue = (value: unknown) =>
+                value == null || value === "" ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value)
+              return (
+                <div className="grid grid-cols-2 gap-x-10 gap-y-4 text-sm">
+                  <div className="space-y-4">
+                    {leftCol.map(([key, value]) => (
+                      <div key={key} className="flex justify-between gap-4">
+                        <span className="font-semibold text-foreground">{formatHeader(key)}</span>
+                        <span className="text-muted-foreground text-right">{renderValue(value)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </dl>
-            ) : salesRows.length > 0 ? (
-              <p className="text-muted-foreground text-sm">See table below for records.</p>
-            ) : (
-              <p className="text-muted-foreground text-sm">No details available.</p>
-            )}
-            {!detailLoading && salesRows.length === 0 && !(salesSummary && Object.keys(salesSummary).length > 0) && salesDetail != null && (
-              <pre className="text-sm overflow-auto rounded bg-muted/50 p-4 max-h-48">
-                {JSON.stringify(salesDetail, null, 2)}
-              </pre>
-            )}
+                  <div className="space-y-4">
+                    {rightCol.map(([key, value]) => (
+                      <div key={key} className="flex justify-between gap-4">
+                        <span className="font-semibold text-foreground">{formatHeader(key)}</span>
+                        <span className="text-muted-foreground text-right">{renderValue(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
           </CardContent>
         </Card>
       )}
